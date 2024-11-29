@@ -310,6 +310,8 @@ static int initialized = 0;
 static int    fake_gettimeofday(struct timeval *tv);
 static int    fake_clock_gettime(clockid_t clk_id, struct timespec *tp);
 int           read_config_file();
+static void   install_sigusr1_handler();
+static void   send_wakeup_ready(int fd);
 bool          str_array_contains(const char *haystack, const char *needle);
 void *ft_dlvsym(void *handle, const char *symbol, const char *version, const char *full_name, char *ignore_list, bool should_debug_dlsym);
 
@@ -3042,7 +3044,49 @@ static void ftpl_really_init(void)
     read_config_file();
   }
 
+  if (NULL != (tmp_env = getenv("FAKETIME_SIGUSR1_WAKEUP")))
+  {
+    if (0 == strcmp(tmp_env, "1"))
+    {
+      install_sigusr1_handler();
+
+      if (NULL != (tmp_env = getenv("FAKETIME_WAKEUP_READY_FD")))
+      {
+        int fd = atoi(tmp_env);
+        send_wakeup_ready(fd);
+      }
+    }
+  }
+
   dont_fake = dont_fake_final;
+}
+
+static void sigusr1_handler(int signo) {
+  // no need to do anything, just wake up the process and interrupt active system calls
+  (void) signo;
+}
+
+static void install_sigusr1_handler() {
+  struct sigaction sa;
+  sa.sa_handler = sigusr1_handler;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  if (sigaction(SIGUSR1, &sa, NULL) == -1) {
+    perror("libfaketime: In install_sigusr1_handler(), sigaction failed");
+    exit(1);
+  }
+}
+
+static void send_wakeup_ready(int fd) {
+  char ready = 'R';
+  if (write(fd, &ready, 1) != 1) {
+    perror("libfaketime: In send_wakeup_ready(), write failed");
+    exit(1);
+  }
+  if (close(fd) == -1) {
+    perror("libfaketime: In send_wakeup_ready(), close failed");
+    exit(1);
+  }
 }
 
 inline static void ftpl_init(void) {
