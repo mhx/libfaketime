@@ -2470,7 +2470,7 @@ static void parse_ft_string(const char *user_faked_time)
   if (!strncmp(user_faked_time, user_faked_time_saved, BUFFERLEN))
   {
       /* No change but eventually when using FAKETIME_FOLLOW_FILE */
-      if (user_faked_time[0] != '%')
+      if (user_faked_time[0] != '%' && user_faked_time[0] != '=')
         return;
   }
 
@@ -2553,7 +2553,9 @@ static void parse_ft_string(const char *user_faked_time)
       break;
 
     case '%': /* follow file timestamp as suggested by Hitoshi Harada (umitanuki) */
-      ft_mode = FT_START_AT;
+    case '=':
+      user_faked_time_set = user_faked_time[0] == '=';
+      ft_mode = user_faked_time_set ? FT_FREEZE : FT_START_AT;
       struct stat master_file_stats;
       int ret;
       if (NULL == getenv("FAKETIME_FOLLOW_FILE"))
