@@ -2573,8 +2573,8 @@ static void parse_ft_string(const char *user_faked_time)
         }
         else
         {
-          user_faked_time_timespec.tv_sec = master_file_stats.st_mtime;
-          user_faked_time_timespec.tv_nsec = 0;
+          user_faked_time_timespec.tv_sec = master_file_stats.st_mtim.tv_sec;
+          user_faked_time_timespec.tv_nsec = master_file_stats.st_mtim.tv_nsec;
         }
       }
       if (NULL == getenv("FAKETIME_DONT_RESET"))
